@@ -1,0 +1,6 @@
+meili_data/
+vingine_data/
+master_key
+__pycache__
+*.json
+movies.py

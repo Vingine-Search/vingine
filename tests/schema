@@ -1,0 +1,17 @@
+info:
+    - video_id - done
+    - video_title - done
+    - type - done
+    - status - done
+    - duration - done
+
+    # store these in the fs
+    - script_per_second - TODO
+    - closed_captions - TODO
+    - desc_per_second - TODO
+
+segments:
+    - video_id+analysis_type+from+to
+    - segment_title
+    - video_title
+    - segment_content
