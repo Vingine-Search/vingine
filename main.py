@@ -103,20 +103,21 @@ def info(id: str):
 @api.get('/search')
 def search(query: str):
     """Look up the query in the index."""
-    # Cache the duration per query since the same video will probably hit multiple times.
-    duration_cache = {}
-    def _get_duration(id):
-        if id not in duration_cache:
+    # Cache the info per query since the same video will probably hit multiple times.
+    info_cache = {}
+    def _get_info(id):
+        if id not in info_cache:
             # The ID must be in the info index since it's in the segments one.
-            duration_cache[id] = info_db.get_document(id).duration
-        return duration_cache[id]
+            info_cache[id] = info_db.get_document(id)
+        return info_cache[id]
     def _mapper(doc):
         id, analysis, frm, to = doc["id"].split("+")
         return {
             "id": id,
+            "video_title": _get_info(id).title,
             "from": frm,
             "to": to,
-            "duration": _get_duration(id),
+            "duration": _get_info(id).duration,
             "segment_type": "scene" if analysis == "v" else "topic",
             "segment_title": doc["segment_title"],
         }
