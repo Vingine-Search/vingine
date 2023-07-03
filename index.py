@@ -37,6 +37,10 @@ segments_db.update_displayed_attributes([
     "id", "segment_title"
 ])
 segments_db.update_synonyms(json.loads(try_open("synonyms.json", {})))
+# The default rules list has `exactness` being the least important rule.
+# Favoring `exactness` makes the original query more relevant than its synonym expansion (in meilisearch v1.2+).
+segments_db.update_ranking_rules(['exactness', 'words', 'typo',
+                                  'proximity', 'attribute', 'sort'])
 segments_db.update_stop_words(json.loads(try_open("stop_words.json", [])))
 segments_db.update_typo_tolerance({
     "enabled": True,
