@@ -5,7 +5,10 @@ def wait_on(t):
     while client.get_task(t.task_uid).status != "succeeded":
         time.sleep(0.001)
 
-client = meilisearch.Client('http://127.0.0.1:7700', open("../master_key").read())
+with open("../master_key") as f:
+    master_key = f.read().strip()
+
+client = meilisearch.Client('http://127.0.0.1:7700', master_key)
 
 indexes = client.get_all_stats()['indexes'].keys()
 for ind in indexes:
@@ -19,11 +22,11 @@ index.add_documents([
     {
         'id': 'aaaa-t-s1-s3',
         'title': 'one two',
-        'other': 'car bar sonar play'
+        'other': 'car bar sonar play',
     },
     {
         'id': 'bbbb-t-s4-s6',
-        'title': 'five six'
+        'title': 'five six',
     }
 ])
 time.sleep(0.1)
