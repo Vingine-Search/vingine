@@ -4,3 +4,4 @@ master_key
 __pycache__
 *.json
 movies.py
+venv/

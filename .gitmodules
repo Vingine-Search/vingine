@@ -1,0 +1,3 @@
+[submodule "video_description"]
+	path = video_description
+	url = https://github.com/Vingine-Search/video-analysis
