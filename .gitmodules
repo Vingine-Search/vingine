@@ -4,3 +4,6 @@
 [submodule "audio_analysis"]
 	path = audio_analysis
 	url = https://github.com/Vingine-Search/audio-analysis
+[submodule "scene_detection"]
+	path = scene_detection
+	url = https://github.com/Vingine-Search/Scene-Detection.git
