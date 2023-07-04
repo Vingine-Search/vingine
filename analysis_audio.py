@@ -66,3 +66,23 @@ def get_title(text: str) -> str:
     )
     title = title[0].upper() + title[1:]
     return title
+
+def ana(path):
+    analyze(path)
+    # Load the topic segments.
+    base_name = os.path.splitext(path)[0]
+    topics = open(base_name + '.topics').read().split('\n\n')
+    bounds = open(base_name + '.bounds').read().split('\n')
+    # We don't need these files anymore.
+    os.remove(base_name + '.topics')
+    os.remove(base_name + '.bounds')
+    # Get the topic text and the start and end time.
+    topics = [(txt, int(tim.split()[0]), int(tim.split()[1])) for txt, tim in zip(topics, bounds)]
+    docs = [{"id": f"{id}+t+{frm}+{to}",
+            "segment_title": "",#get_title(txt),
+            "segment_content": txt} for txt, frm, to in topics]
+    print(docs)
+
+if __name__ == "__main__":
+    import sys
+    ana(sys.argv[1])
