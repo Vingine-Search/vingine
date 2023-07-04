@@ -5,3 +5,11 @@ __pycache__
 *.json
 movies.py
 venv/
+*.mp3
+*.mp4
+*.txt
+*.asr
+*.dsc
+*.vtt
+*.topics
+*.bounds
