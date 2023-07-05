@@ -35,16 +35,18 @@ async def analyse(video: UploadFile, id: str, name: str, analysis_type: str):
     """Runs analysis on a video."""
     # At this point, we are assuming that the extension and file format is correct (handled in the demo backend).
     extension = '.' + video.filename.split(".")[-1]
-    path = os.path.join(STORAGE_DIR, id) + extension
+    os.mkdir(os.path.join(STORAGE_DIR, id))
+    path = os.path.join(STORAGE_DIR, id, "video") + extension
     async with aiofiles.open(path, 'wb') as file:
         while contents := await video.read(256 * 1024):
             await file.write(contents)
     analysis_type = analysis_type.replace("both", "audio & video")
+    duration = utils.get_video_duration(path)
     info_db.add_documents([{
         "id": id,
         "title": name,
         "type": analysis_type,
-        "duration": utils.get_video_duration(path),
+        "duration": duration,
         # Variants: "processing", "processed", "error_msg"
         "status": "processing"
     }])
@@ -52,7 +54,7 @@ async def analyse(video: UploadFile, id: str, name: str, analysis_type: str):
     if "audio" in analysis_type:
         analysis_tasks.append(analysis_audio.analyse(id, name, path))
     if "video" in analysis_type:
-        analysis_tasks.append(analysis_video.analyse(id, name, path))
+        analysis_tasks.append(analysis_video.analyse(id, name, path, duration))
     # Fire a call back to update the video status when it's finished.
     tasks[id] = asyncio.create_task(update_status_when_finished(analysis_tasks, id, path))
 
@@ -93,8 +95,8 @@ def info(id: str):
             "duration": info.duration,
             "scene_segments": scene_segments,
             "topic_segments": topic_segments,
-            "asr": asr,
-            "dsc": dsc,
+            "asr": utils.split_lines(asr),
+            "dsc": utils.split_lines(dsc),
             "vtt": vtt,
         }
     except IndexDBError:

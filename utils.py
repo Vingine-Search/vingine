@@ -1,13 +1,16 @@
 import os
 import cv2
+import time
 from constants import STORAGE_DIR
 
 
 def get_fs_data(id: str):
-    no_ext = os.path.join(STORAGE_DIR, id)
-    files = [no_ext + ext for ext in ['.asr', '.dsc', '.vtt']]
-    return [open(file).read() if os.path.exists(file) else None
-            for file in files]
+    files = [os.path.join(STORAGE_DIR, id, file) for file in ['video.asr', 'video.dsc', 'video.vtt']]
+    return [open(file).read() if os.path.exists(file) else None for file in files]
+
+def split_lines(string: str):
+    if string:
+        return string.strip().split()
 
 def try_open(file_name: str, default):
     try:
@@ -20,3 +23,10 @@ def get_video_duration(path: str) -> float:
     fps = video.get(cv2.CAP_PROP_FPS)
     frm = video.get(cv2.CAP_PROP_FRAME_COUNT)
     return round(frm/fps, 2)
+
+def wait_to_inspect(msg, wait_on):
+    dir, ext = os.path.dirname(wait_on), os.path.splitext(wait_on)[1]
+    waiter = os.path.join(dir, "wait" + ext)
+    open(waiter, 'w').write(msg + '\nRemove me when you are done.')
+    while os.path.exists(waiter):
+        time.sleep(0.5)

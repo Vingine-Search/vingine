@@ -1,6 +1,7 @@
 import os
+from constants import SEM
 #from index import segments_db
-from constants import SEM, STORAGE_DIR
+from utils import wait_to_inspect
 
 from video_description.inference.s3d_infer import *
 from video_description.inference.obj_infer import *
@@ -17,48 +18,64 @@ vrd_model, rlp_objs, rlp_preds = None, None, None
 keintics_classes = read_s3d_classes() # 400 class for s3d model
 coco_names = read_coco_names() # 80 class for faster rcnn model
 
-async def analyse(id: str, title: str, path: str):
-    # TODO: Run an OCR for better results.
-    # TODO: Store description per second file [id].dsc
+async def analyse(id: str, title: str, path: str, duration: float):
+    # TODO: Run an OCR for better results. (Done)
+    # TODO: Store description per second file [id].dsc (Done)
     async with SEM:
-        global s3d_model, obj_model, ocr_model, vrd_model, rlp_objs, rlp_preds
-        if s3d_model is None:
-            init_models()
+        describe_every = 5
+        descriptions = []
+        for i in range(0, duration, describe_every):
+            # Make sure the last query is 5s as well.
+            if i + describe_every > duration:
+                i = duration - describe_every
+            descriptions.append(describe(path, i, i + describe_every))
 
-        parent_path = os.path.dirname(path)
-        ## Get top Actions
-        # extracted frames directory, id is unique
-        images_dir = os.path.join(parent_path, f"{id}-frames")
-        one_clip(path, images_dir)
-        predicted_actions = s3d_infer(images_dir, s3d_model, keintics_classes) # top 5 [(class_name, score)]
+        dsc_file = os.path.splitext(path)[0] + '.dsc'
+        seg_file = os.path.splitext(path)[0] + '.seg'
+        # every description line represents `describe_every` seconds.
+        open(dsc_file, 'w').write('\n'.join([', '.join(description) for description in descriptions]))
 
-        ## Save images paths
-        images_paths_list = []
-        for image_path in os.listdir(images_dir):
-          images_paths_list.append(os.path.join(images_dir, image_path))
+        # -------------> INSPECT HERE
+        wait_to_inspect(f"Generated the video description: {dsc_file}", dsc_file)
+        descriptions = [line.split(', ') for line in open(dsc_file).read().split('\n')]
+        open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
 
-        ## Get Objects from frames
-        # for batch inference to work, images should be in `images_dir/unkonwn/`
-        os.mkdir(os.path.join(images_dir, "unknown"))
-        os.system(f"cp {images_dir}/*.jpg {images_dir}/unknown/")
-        _, objs_labels = obj_batch_infer(images_dir, obj_model, coco_names)
-        predicted_objects = unique_list(objs_labels) # list of objects in the video
+        # Assume it's one segment and don't do any segmentation.
+        segments = [duration]
+        if duration > 3 * 60:
+            # Segment the video if it's longer than 3 minutes.
+            segments = []
+            open(seg_file, 'w').write(' '.join(segments))
 
-        ## Get Relations between objects
-        rlps = vrd_batch_infer(images_dir, vrd_model, rlp_objs, rlp_preds)
-        predicted_relations = unique_list(rlps) # list of relations between objects in the video
+            # -------------> INSPECT HERE
+            wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
+            segments = [float(s) for s in open(seg_file, 'w').read().split()]
 
-        ## Get Text from frames
-        easyocr_labels = easyocr_infer(images_paths_list, ocr_model)
-        predicted_text = unique_list(easyocr_labels) # list of text in the video
+        docs = []
+        frm = 0
+        for to in segments:
+            frm, to=round(frm/describe_every), round(to/describe_every)
+            docs.append({
+                "id": f"{id}+v+{frm}+{to}",
+                "video_title": title,
+                "segment_title": "",
+                "segment_content": get_content(descriptions, frm, to)
+            })
+            # Update the last from.
+            frm = to
+        segments_db.add_documents(docs)
 
-        ## TODO: complete this & save to db
-        pass
-
+def get_content(descriptions, frm, to):
+    # Keep a list of unique descriptions ordered by when they first appeared
+    output = []
+    for i in range(frm, to + 1):
+        for sent in descriptions[i]:
+            if sent not in output:
+                output.append(sent)
+    return ' '.join(output)
 
 def unique_list(res: List[List[str]]) -> List[str]:
     return list(set([item for sublist in res for item in sublist]))
-
 
 def init_models():
     global s3d_model, obj_model, ocr_model, vrd_model, rlp_objs, rlp_preds
@@ -67,19 +84,19 @@ def init_models():
     ocr_model = prepare_easyocr()
     #vrd_model, rlp_objs, rlp_preds = prepare_vrd_model()
 
-
-def mam(path):
+def describe(path, start=0, end=5):
     global s3d_model, obj_model, ocr_model, vrd_model, rlp_objs, rlp_preds
     if s3d_model is None:
         init_models()
-    dsc = os.path.splitext(path)[0] + '.dsc'
 
     ## Get top Actions
     # extracted frames directory, id is unique
-    images_dir = one_clip(path, fps=1, start=3, end=20)
+    images_dir = one_clip(path, fps=10, start=start, end=end)
     unknown_dir = os.path.join(images_dir, "unknown")
     predicted_actions = s3d_infer(images_dir, s3d_model, keintics_classes) # top 5 [(class_name, score)]
-    print(predicted_actions)
+    # Keep only the actions with high enough confidence
+    predicted_actions = [action[0] for action in predicted_actions if action[1] > 0.2]
+    #print(predicted_actions)
 
     ## Save images paths
     images_paths_list = []
@@ -92,6 +109,7 @@ def mam(path):
     # os.system(f"cp {images_dir}/*.jpg {images_dir}/unknown/")
     _, objs_labels = obj_batch_infer(images_dir, obj_model, coco_names)
     predicted_objects = unique_list(objs_labels) # list of objects in the video
+    #print(predicted_objects)
 
     # ## Get Relations between objects
     # rlps = vrd_batch_infer(images_dir, vrd_model, rlp_objs, rlp_preds)
@@ -100,12 +118,35 @@ def mam(path):
     ## Get Text from frames
     easyocr_labels = easyocr_infer(images_paths_list, ocr_model)
     predicted_text = unique_list(easyocr_labels) # list of text in the video
-    print(predicted_actions, predicted_objects, predicted_text)
-    exit()
+    #print(predicted_text)
 
+    #os.system(f"rm -rf {images_dir}")
+    return predicted_actions + predicted_objects + predicted_text
 
 if __name__ == "__main__":
     import sys
-    path = sys.argv[1]
-    id = os.path.splitext(os.path.basename(path))[0]
-    mam(path)
+    print(describe(sys.argv[1]))
+
+    # path = sys.argv[1]
+    # describe_every = 5
+    # duration = 11
+    # descriptions = []
+    # for i in range(0, duration, describe_every):
+    #     # Make sure the last query is 5s as well.
+    #     if i + describe_every > duration:
+    #         i = duration - describe_every
+    #     descriptions.append(describe(path, i, i + describe_every))
+
+    # dsc_file = os.path.splitext(path)[0] + '.dsc'
+    # with open(dsc_file, 'w') as dsc:
+    #     for description in descriptions:
+    #         # every description line represents `describe_every` seconds.
+    #         dsc.write(' '.join(description) + '\n')
+    
+    # while True:
+    #     try:
+    #         s1, s2 = input("Enter the seconds: ").split()
+    #         get_content(descriptions, round(int(s1) / describe_every), round(int(s2) / describe_every))
+    #     except Exception as e:
+    #         print(e)
+

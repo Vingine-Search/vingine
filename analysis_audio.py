@@ -1,7 +1,11 @@
 import os, re
 from constants import SEM
-from index import segments_db
-from audio_analysis.analyse import main as analyze
+#from index import segments_db
+from utils import wait_to_inspect
+
+from audio_analysis.whisper_asr.asr import main as asr
+from audio_analysis.topic_segmentation.predict_mod import predict
+from audio_analysis.whisper_asr.bounder import main as bound
 
 
 async def analyse(id: str, title: str, path: str):
@@ -10,24 +14,32 @@ async def analyse(id: str, title: str, path: str):
     # TODO: Store CC [id].vtt (Done)
     async with SEM:
         try:
-            # Analyze generates the vtt & asr files.
-            analyze(path)
+            # Load the topic segments.
+            base_name = os.path.splitext(path)[0]
+            # Generate the vtt & asr & txt files.
+            asr(path)
+            # Generate the topics file.
+            predict(base_name + '.txt')
+
+            # -------------> INSPECT HERE
+            wait_to_inspect(f"Generated topics file: {base_name + '.topics'}", base_name + '.topics')
+            # Generate the bounds file.
+            bound(base_name + '.topics', base_name + '.asr')
+            topics = open(base_name + '.topics').read().split('\n\n')
+            bounds = open(base_name + '.bounds').read().split('\n')
+            # We don't need these files anymore.
+            os.remove(base_name + ".txt")
+            os.remove(base_name + '.topics')
+            os.remove(base_name + '.bounds')
+            # Get the topic text and the start and end time.
+            topics = [(txt, int(tim.split()[0]), int(tim.split()[1])) for txt, tim in zip(topics, bounds)]
+            docs = [{"id": f"{id}+t+{frm}+{to}",
+                    "video_title": title,
+                    "segment_title": get_title(txt),
+                    "segment_content": txt} for txt, frm, to in topics]
+            segments_db.add_documents(docs)
         except Exception as e:
             raise RuntimeError(f"Audio Analysis Failed: {e}")
-        # Load the topic segments.
-        base_name = os.path.splitext(path)[0]
-        topics = open(base_name + '.topics').read().split('\n\n')
-        bounds = open(base_name + '.bounds').read().split('\n')
-        # We don't need these files anymore.
-        os.remove(base_name + '.topics')
-        os.remove(base_name + '.bounds')
-        # Get the topic text and the start and end time.
-        topics = [(txt, int(tim.split()[0]), int(tim.split()[1])) for txt, tim in zip(topics, bounds)]
-        docs = [{"id": f"{id}+t+{frm}+{to}",
-                "video_title": title,
-                "segment_title": get_title(txt),
-                "segment_content": txt} for txt, frm, to in topics]
-        segments_db.add_documents(docs)
 
 
 tokenizer, model = None, None
@@ -68,9 +80,15 @@ def get_title(text: str) -> str:
     return title
 
 def ana(path):
-    analyze(path)
     # Load the topic segments.
     base_name = os.path.splitext(path)[0]
+    # Generate the vtt & asr & txt files.
+    asr(path)
+    # Generate the topics file.
+    predict(base_name + '.txt')
+    # Generate the bounds file.
+    bound(base_name + '.topics', base_name + '.asr')
+    # Load the topic segments.
     topics = open(base_name + '.topics').read().split('\n\n')
     bounds = open(base_name + '.bounds').read().split('\n')
     # We don't need these files anymore.
@@ -81,8 +99,8 @@ def ana(path):
     docs = [{"id": f"{id}+t+{frm}+{to}",
             "segment_title": "",#get_title(txt),
             "segment_content": txt} for txt, frm, to in topics]
-    print(docs)
+    return docs
 
 if __name__ == "__main__":
     import sys
-    ana(sys.argv[1])
+    print(ana(sys.argv[1]))
