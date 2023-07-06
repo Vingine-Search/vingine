@@ -68,8 +68,13 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
         base_name = os.path.splitext(path)[0]
         # Generate the vtt & asr & txt files.
         asr(path)
-        # Generate the topics file.
-        predict(base_name + '.txt')
+        try:
+            # Generate the topics file.
+            predict(base_name + '.txt')
+        except ValueError:
+            # The text might be too short to make up a single batch for topic segmentation.
+            # Assume it's one topic and carry on.
+            os.system(f"cp {base_name + '.txt'} {base_name + '.topics'}")
 
         # -------------> INSPECT HERE
         wait_to_inspect(f"Generated topics file: {base_name + '.topics'}", base_name + '.topics')
