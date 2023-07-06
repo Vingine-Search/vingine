@@ -126,6 +126,11 @@ def search(query: str):
             "duration": _get_info(id).duration,
             "segment_type": "scene" if analysis == "v" else "topic",
             "segment_title": doc["segment_title"],
+            "status": _get_info(id).status,
         }
+
+    def _filter(doc):
+        return doc["status"] == "processed"
+
     result = segments_db.search(query, {'limit': 1000})['hits']
-    return list(map(_mapper, result))
+    return list(filter(_filter, map(_mapper, result)))
