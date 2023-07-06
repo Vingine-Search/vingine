@@ -1,4 +1,5 @@
-import json, time
+import json
+import time
 import meilisearch
 from utils import try_open
 # Re-exported
@@ -8,6 +9,9 @@ from meilisearch.errors import MeilisearchApiError as IndexDBError
 def wait_on(task):
     while client.get_task(task.task_uid).status not in ["succeeded", "failed"]:
         time.sleep(0.001)
+    task = client.get_task(task.task_uid)
+    if task.status == "failed":
+        print(f"Task failed: {task}")
 
 client = meilisearch.Client('http://127.0.0.1:7700', try_open("master_key", None))
 
@@ -32,10 +36,7 @@ segments_db.update_searchable_attributes([
     # Search by ID is enabled to get all info about a specific video ID.
     "id", "video_title", "segment_content"
 ])
-segments_db.update_displayed_attributes([
-    # After searching, we only need the ID and the segment title returned.
-    "id", "segment_title"
-])
+segments_db.reset_displayed_attributes()
 segments_db.update_synonyms(json.loads(try_open("synonyms.json", {})))
 # The default rules list has `exactness` being the least important rule.
 # Favoring `exactness` makes the original query more relevant than its synonym expansion (in meilisearch v1.2+).

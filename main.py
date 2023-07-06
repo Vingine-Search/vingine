@@ -2,7 +2,8 @@ import os
 import utils
 import asyncio
 import aiofiles
-import analysis_audio, analysis_video
+import analysis_audio
+import analysis_video
 
 from constants import STORAGE_DIR
 from index import info_db, segments_db, IndexDBError
@@ -66,7 +67,7 @@ def status(id: str):
         if doc.status == "processing":
             return "Video is still being processed"
         elif doc.status == "processed":
-            return f"Video has been fully processed for {doc.analysis_type}"
+            return f"Video has been fully processed for {doc.type}"
         else:
             raise HTTPException(500, f"Analysis for video '{id}' has failed: {doc.status}")
     except IndexDBError:
@@ -85,7 +86,7 @@ def info(id: str):
         scene_segments = []
         topic_segments = []
         for segment in segments:
-            _, analysis, frm, to = segment["id"].split("+")
+            _, analysis, frm, to = segment["id"].split("_")
             if analysis == "v":
                 scene_segments.append({"from": frm, "to": to, "title": segment["segment_title"]})
             else:
@@ -113,7 +114,7 @@ def search(query: str):
             info_cache[id] = info_db.get_document(id)
         return info_cache[id]
     def _mapper(doc):
-        id, analysis, frm, to = doc["id"].split("+")
+        id, analysis, frm, to = doc["id"].split("_")
         return {
             "id": id,
             "video_title": _get_info(id).title,

@@ -1,6 +1,7 @@
 import os
 import cv2
 import time
+import subprocess
 from constants import STORAGE_DIR, WAIT_TO_INSPECT
 
 
@@ -18,10 +19,17 @@ def try_open(file_name: str, default):
     except:
         return default
 
+def get_duration_ffprobe(input_video):
+    result = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', input_video], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return round(float(result.stdout), 2)
+
 def get_video_duration(path: str) -> float:
     video = cv2.VideoCapture(path)
     fps = video.get(cv2.CAP_PROP_FPS)
     frm = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    if fps == 0 or frm == 0:
+        # Fall back to ffprobe (for audio-only files)
+        return get_duration_ffprobe(path)
     return round(frm/fps, 2)
 
 def wait_to_inspect(msg, wait_on):
@@ -30,4 +38,4 @@ def wait_to_inspect(msg, wait_on):
         waiter = os.path.join(dir, "wait" + ext)
         open(waiter, 'w').write(msg + '\nRemove me when you are done.')
         while os.path.exists(waiter):
-            time.sleep(0.5)
+            time.sleep(0.1)
