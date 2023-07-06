@@ -8,6 +8,8 @@ from video_description.inference.obj_infer import *
 from video_description.inference.ocr_infer import *
 from video_description.inference.vrd_infer import *
 
+from scene_detection.main_re import get_scene_seg
+
 from typing import List
 
 s3d_model = None
@@ -44,7 +46,7 @@ async def analyse(id: str, title: str, path: str, duration: float):
         segments = [duration]
         if duration > 3 * 60:
             # Segment the video if it's longer than 3 minutes.
-            segments = []
+            segments = get_scene_seg(path)
             open(seg_file, 'w').write(' '.join(segments))
 
             # -------------> INSPECT HERE
@@ -125,7 +127,8 @@ def describe(path, start=0, end=5):
 
 if __name__ == "__main__":
     import sys
-    print(describe(sys.argv[1]))
+    print(get_scene_seg(sys.argv[1]))
+    #print(describe(sys.argv[1]))
 
     # path = sys.argv[1]
     # describe_every = 5
