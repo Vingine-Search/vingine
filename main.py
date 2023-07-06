@@ -23,7 +23,10 @@ async def update_status_when_finished(analysis_tasks, id, path):
     except Exception as e:
         # Cancel all the tasks if one of them fails.
         for task in analysis_tasks:
-            task.cancel()
+            try:
+                task.cancel()
+            except:
+                pass
         info_db.update_documents([
             {"id": id, "status": f"Analysis Failed ({e})"}
         ])
