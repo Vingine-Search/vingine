@@ -93,10 +93,6 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
         bound(base_name + '.topics', base_name + '.asr')
         topics = open(base_name + '.topics').read().split('\n\n')
         bounds = open(base_name + '.bounds').read().split('\n')
-        # We don't need these files anymore.
-        os.remove(base_name + ".txt")
-        os.remove(base_name + '.topics')
-        os.remove(base_name + '.bounds')
         # Get the topic text and the start and end time.
         topics = [(txt, int(tim.split()[0]), int(tim.split()[1])) for txt, tim in zip(topics, bounds)]
         docs = [{"id": f"{id}_t_{frm}_{to}",
