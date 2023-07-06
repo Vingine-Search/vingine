@@ -128,7 +128,7 @@ def describe(path, start=0, end=5):
 def ana(id: str, title: str, path: str, duration: float):
     describe_every = 5
     descriptions = []
-    for i in range(0, duration, describe_every):
+    for i in range(0, int(duration), describe_every):
         # Make sure the last query is 5s as well.
         if i + describe_every > duration:
             i = duration - describe_every
