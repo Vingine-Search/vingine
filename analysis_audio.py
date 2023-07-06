@@ -4,9 +4,9 @@ import threading
 from constants import SEM
 from utils import wait_to_inspect
 
-from audio_analysis.whisper_asr.asr import main as asr
+from audio_analysis.whisper_asr.asr import main as asr, init_asr
 from audio_analysis.whisper_asr.bounder import main as bound
-from audio_analysis.topic_segmentation.predict_mod import predict
+from audio_analysis.topic_segmentation.predict_mod import predict, init_topic
 
 tokenizer, model = None, None
 
@@ -26,15 +26,19 @@ async def analyse(id: str, title: str, path: str):
         if exp[0] != None:
             raise RuntimeError(exp[0])
 
+def init_titler():
+    global tokenizer, model
+    print("Loading the title generator")
+    from transformers import AutoTokenizer, T5ForConditionalGeneration
+    tokenizer = AutoTokenizer.from_pretrained("JulesBelveze/t5-small-headline-generator")
+    print("Loaded the title generator tokenizer")
+    model = T5ForConditionalGeneration.from_pretrained("JulesBelveze/t5-small-headline-generator")
+    print("Loaded the title generator model")
+
 def get_title(text: str) -> str:
     global tokenizer, model
     if tokenizer is None:
-        print("Loading the title generator")
-        from transformers import AutoTokenizer, T5ForConditionalGeneration
-        tokenizer = AutoTokenizer.from_pretrained("JulesBelveze/t5-small-headline-generator")
-        print("Loaded the title generator tokenizer")
-        model = T5ForConditionalGeneration.from_pretrained("JulesBelveze/t5-small-headline-generator")
-        print("Loaded the title generator model")
+        init_titler()
 
     WHITESPACE_HANDLER = lambda k: re.sub('\s+', ' ', re.sub('\n+', ' ', k.strip()))
 
@@ -95,3 +99,7 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
         segments_db.add_documents(docs)
     except Exception as e:
         exp[0] = f"Audio Analysis Failed: {e}"
+
+init_asr()
+init_topic()
+init_titler()

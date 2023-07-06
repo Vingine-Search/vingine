@@ -146,3 +146,6 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
         segments_db.add_documents(docs)
     except Exception as e:
         exp[0] = f"Video Analysis Failed: {e}"
+
+
+init_models()
