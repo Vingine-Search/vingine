@@ -1,6 +1,5 @@
 import os
 from constants import SEM
-#from index import segments_db
 from utils import wait_to_inspect
 
 from video_description.inference.s3d_infer import *
@@ -21,51 +20,55 @@ keintics_classes = read_s3d_classes() # 400 class for s3d model
 coco_names = read_coco_names() # 80 class for faster rcnn model
 
 async def analyse(id: str, title: str, path: str, duration: float):
+    from index import segments_db
     # TODO: Run an OCR for better results. (Done)
     # TODO: Store description per second file [id].dsc (Done)
     async with SEM:
-        describe_every = 5
-        descriptions = []
-        for i in range(0, duration, describe_every):
-            # Make sure the last query is 5s as well.
-            if i + describe_every > duration:
-                i = duration - describe_every
-            descriptions.append(describe(path, i, i + describe_every))
+        try:
+            describe_every = 5
+            descriptions = []
+            duration = int(duration)
+            for i in range(0, duration, describe_every):
+                # Make sure the last query is 5s as well.
+                if i + describe_every > duration:
+                    i = duration - describe_every
+                descriptions.append(describe(path, i, i + describe_every))
 
-        dsc_file = os.path.splitext(path)[0] + '.dsc'
-        seg_file = os.path.splitext(path)[0] + '.seg'
-        # every description line represents `describe_every` seconds.
-        open(dsc_file, 'w').write('\n'.join([', '.join(description) for description in descriptions]))
-
-        # -------------> INSPECT HERE
-        wait_to_inspect(f"Generated the video description: {dsc_file}", dsc_file)
-        descriptions = [line.split(', ') for line in open(dsc_file).read().split('\n')]
-        open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
-
-        # Assume it's one segment and don't do any segmentation.
-        segments = [duration]
-        if duration > 3 * 60:
-            # Segment the video if it's longer than 3 minutes.
-            segments = [str(s) for s in get_scene_seg(path)] + [duration]
-            open(seg_file, 'w').write(' '.join(segments))
+            dsc_file = os.path.splitext(path)[0] + '.dsc'
+            seg_file = os.path.splitext(path)[0] + '.seg'
+            # every description line represents `describe_every` seconds.
+            open(dsc_file, 'w').write('\n'.join([', '.join(description) for description in descriptions]))
 
             # -------------> INSPECT HERE
-            wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
-            segments = [float(s) for s in open(seg_file).read().split()]
+            wait_to_inspect(f"Generated the video description: {dsc_file}", dsc_file)
+            descriptions = [line.split(', ') for line in open(dsc_file).read().split('\n')]
+            open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
 
-        docs = []
-        frm = 0
-        for to in segments:
-            frm, to=round(frm/describe_every), round(to/describe_every)
-            docs.append({
-                "id": f"{id}+v+{frm}+{to}",
-                "video_title": title,
-                "segment_title": "",
-                "segment_content": get_content(descriptions, frm, to)
-            })
-            # Update the last from.
-            frm = to
-        segments_db.add_documents(docs)
+            # Assume it's one segment and don't do any segmentation.
+            segments = [duration]
+            if duration > 3 * 60:
+                # Segment the video if it's longer than 3 minutes.
+                segments = [str(s) for s in get_scene_seg(path)] + [duration]
+                open(seg_file, 'w').write(' '.join(segments))
+
+                # -------------> INSPECT HERE
+                wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
+                segments = [int(s) for s in open(seg_file).read().split()]
+
+            docs = []
+            frm = 0
+            for to in segments:
+                docs.append({
+                    "id": f"{id}+v+{frm}+{to}",
+                    "video_title": title,
+                    "segment_title": "",
+                    "segment_content": get_content(descriptions, round(frm/describe_every), round(to/describe_every))
+                })
+                # Update the last from.
+                frm = to
+            segments_db.add_documents(docs)
+        except Exception as e:
+            raise RuntimeError(f"Video Analysis Failed: {e}")
 
 def get_content(descriptions, frm, to):
     # Keep a list of unique descriptions ordered by when they first appeared
@@ -128,7 +131,8 @@ def describe(path, start=0, end=5):
 def ana(id: str, title: str, path: str, duration: float):
     describe_every = 5
     descriptions = []
-    for i in range(0, int(duration), describe_every):
+    duration = int(duration)
+    for i in range(0, duration, describe_every):
         # Make sure the last query is 5s as well.
         if i + describe_every > duration:
             i = duration - describe_every
@@ -153,17 +157,16 @@ def ana(id: str, title: str, path: str, duration: float):
 
         # -------------> INSPECT HERE
         wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
-        segments = [float(s) for s in open(seg_file).read().split()]
+        segments = [int(s) for s in open(seg_file).read().split()]
 
     docs = []
     frm = 0
     for to in segments:
-        frm, to=round(frm/describe_every), round(to/describe_every)
         docs.append({
             "id": f"{id}+v+{frm}+{to}",
             "video_title": title,
             "segment_title": "",
-            "segment_content": get_content(descriptions, frm, to)
+            "segment_content": get_content(descriptions, round(frm/describe_every), round(to/describe_every))
         })
         # Update the last from.
         frm = to

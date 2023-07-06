@@ -1,6 +1,5 @@
 import os, re
 from constants import SEM
-#from index import segments_db
 from utils import wait_to_inspect
 
 from audio_analysis.whisper_asr.asr import main as asr
@@ -9,6 +8,7 @@ from audio_analysis.whisper_asr.bounder import main as bound
 
 
 async def analyse(id: str, title: str, path: str):
+    from index import segments_db
     # TODO: Run an API on the output of the topic segmenter. (Done using some pretrained model, bad performance)
     # TODO: Store transcript per second file [id].asr (Done)
     # TODO: Store CC [id].vtt (Done)
