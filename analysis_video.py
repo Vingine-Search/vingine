@@ -48,7 +48,7 @@ async def analyse(id: str, title: str, path: str, duration: float):
             segments = [duration]
             if duration > 3 * 60:
                 # Segment the video if it's longer than 3 minutes.
-                segments = [str(s) for s in get_scene_seg(path)] + [duration]
+                segments = [str(int(s)) for s in get_scene_seg(path)] + [duration]
                 open(seg_file, 'w').write(' '.join(segments))
 
                 # -------------> INSPECT HERE
@@ -58,11 +58,15 @@ async def analyse(id: str, title: str, path: str, duration: float):
             docs = []
             frm = 0
             for to in segments:
+                tos = round(to/describe_every)
+                # Make sure we get the last segment as well.
+                if to == segments[-1]:
+                    tos += 1
                 docs.append({
                     "id": f"{id}+v+{frm}+{to}",
                     "video_title": title,
                     "segment_title": "",
-                    "segment_content": get_content(descriptions, round(frm/describe_every), round(to/describe_every))
+                    "segment_content": get_content(descriptions, round(frm/describe_every), tos)
                 })
                 # Update the last from.
                 frm = to
@@ -71,6 +75,7 @@ async def analyse(id: str, title: str, path: str, duration: float):
             raise RuntimeError(f"Video Analysis Failed: {e}")
 
 def get_content(descriptions, frm, to):
+    print(f"from to (index): {frm} {to}")
     # Keep a list of unique descriptions ordered by when they first appeared
     output = []
     for desc in descriptions[frm:to]:
@@ -152,7 +157,7 @@ def ana(id: str, title: str, path: str, duration: float):
     segments = [duration]
     if duration > 1 * 60:
         # Segment the video if it's longer than 3 minutes.
-        segments = [str(s) for s in get_scene_seg(path)] + [str(duration)]
+        segments = [str(int(s)) for s in get_scene_seg(path)] + [str(duration)]
         open(seg_file, 'w').write(' '.join(segments))
 
         # -------------> INSPECT HERE
@@ -162,11 +167,15 @@ def ana(id: str, title: str, path: str, duration: float):
     docs = []
     frm = 0
     for to in segments:
+        tos = round(to/describe_every)
+        # Make sure we get the last segment as well.
+        if to == segments[-1]:
+            tos += 1
         docs.append({
             "id": f"{id}+v+{frm}+{to}",
             "video_title": title,
             "segment_title": "",
-            "segment_content": get_content(descriptions, round(frm/describe_every), round(to/describe_every))
+            "segment_content": get_content(descriptions, round(frm/describe_every), tos)
         })
         # Update the last from.
         frm = to
