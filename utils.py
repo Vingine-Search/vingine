@@ -11,7 +11,7 @@ def get_fs_data(id: str):
 
 def split_lines(string: str):
     if string:
-        return string.strip().split()
+        return string.strip().split('\n')
 
 def try_open(file_name: str, default):
     try:
