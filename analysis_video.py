@@ -121,7 +121,7 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
         segments = [duration]
         if duration > 3 * 60:
             # Segment the video if it's longer than 3 minutes.
-            segments = [str(int(s)) for s in get_scene_seg(path)] + [duration]
+            segments = [str(int(s)) for s in get_scene_seg(path)] + [str(duration)]
             open(seg_file, 'w').write(' '.join(segments))
 
             # -------------> INSPECT HERE
