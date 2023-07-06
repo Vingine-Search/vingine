@@ -100,6 +100,6 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
     except Exception as e:
         exp[0] = f"Audio Analysis Failed: {e}"
 
-init_asr()
-init_topic()
-init_titler()
+# init_asr()
+# init_topic()
+# init_titler()
