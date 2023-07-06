@@ -6,3 +6,5 @@ STORAGE_DIR = "vingine_data"
 
 SEM = asyncio.Semaphore(1)
 """A global semaphore to limit task concurrency."""
+
+WAIT_TO_INSPECT = False

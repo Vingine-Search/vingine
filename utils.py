@@ -1,7 +1,7 @@
 import os
 import cv2
 import time
-from constants import STORAGE_DIR
+from constants import STORAGE_DIR, WAIT_TO_INSPECT
 
 
 def get_fs_data(id: str):
@@ -25,8 +25,9 @@ def get_video_duration(path: str) -> float:
     return round(frm/fps, 2)
 
 def wait_to_inspect(msg, wait_on):
-    dir, ext = os.path.dirname(wait_on), os.path.splitext(wait_on)[1]
-    waiter = os.path.join(dir, "wait" + ext)
-    open(waiter, 'w').write(msg + '\nRemove me when you are done.')
-    while os.path.exists(waiter):
-        time.sleep(0.5)
+    if WAIT_TO_INSPECT:
+        dir, ext = os.path.dirname(wait_on), os.path.splitext(wait_on)[1]
+        waiter = os.path.join(dir, "wait" + ext)
+        open(waiter, 'w').write(msg + '\nRemove me when you are done.')
+        while os.path.exists(waiter):
+            time.sleep(0.5)
