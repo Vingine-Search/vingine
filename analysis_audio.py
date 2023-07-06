@@ -4,6 +4,13 @@ import threading
 from constants import SEM
 from utils import wait_to_inspect
 
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+
+
 from audio_analysis.whisper_asr.asr import main as asr, init_asr
 from audio_analysis.whisper_asr.bounder import main as bound
 from audio_analysis.topic_segmentation.predict_mod import predict, init_topic
