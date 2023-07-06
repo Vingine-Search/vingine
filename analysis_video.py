@@ -51,7 +51,7 @@ async def analyse(id: str, title: str, path: str, duration: float):
 
             # -------------> INSPECT HERE
             wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
-            segments = [float(s) for s in open(seg_file, 'w').read().split()]
+            segments = [float(s) for s in open(seg_file).read().split()]
 
         docs = []
         frm = 0
@@ -153,7 +153,7 @@ def ana(id: str, title: str, path: str, duration: float):
 
         # -------------> INSPECT HERE
         wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
-        segments = [float(s) for s in open(seg_file, 'w').read().split()]
+        segments = [float(s) for s in open(seg_file).read().split()]
 
     docs = []
     frm = 0
