@@ -24,7 +24,22 @@ async def analyse(id: str, title: str, path: str):
     async with SEM:
         exp = [None]
         # We are offloading the sync task to another thread so it doesn't block our server async runtime.
-        off_server_task = threading.Thread(target=sync_analyse, args=(id, title, path, exp), daemon=True)
+        off_server_task = threading.Thread(target=sync_analyse, args=(path, exp), daemon=True)
+        off_server_task.start()
+        while off_server_task.is_alive():
+            # await to yield the control back to the executor for other tasks to run.
+            await asyncio.sleep(0.1)
+        off_server_task.join()
+        if exp[0] != None:
+            raise RuntimeError(exp[0])
+
+    # -------------> INSPECT HERE
+    await wait_to_inspect(os.path.join(os.path.dirname(path), "topic.wait"))
+
+    async with SEM:
+        exp = [None]
+        # We are offloading the sync task to another thread so it doesn't block our server async runtime.
+        off_server_task = threading.Thread(target=title_generation, args=(id, title, path, exp), daemon=True)
         off_server_task.start()
         while off_server_task.is_alive():
             # await to yield the control back to the executor for other tasks to run.
@@ -72,11 +87,9 @@ def get_title(text: str) -> str:
     title = title[0].upper() + title[1:]
     return title
 
-def sync_analyse(id: str, title: str, path: str, exp: list):
+def sync_analyse(path: str, exp: list):
+    base_name = os.path.splitext(path)[0]
     try:
-        from index import segments_db
-        # Load the topic segments.
-        base_name = os.path.splitext(path)[0]
         # Generate the vtt & asr & txt files.
         asr(path)
         try:
@@ -87,10 +100,13 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
             # Assume it's one topic and carry on.
             open(base_name + '.topics.failed', 'w').write(f"Segmentation Failed: {e}")
             os.system(f"cp {base_name + '.txt'} {base_name + '.topics'}")
+    except Exception as e:
+        exp[0] = f"Audio Analysis Failed: {e}"
 
-        # -------------> INSPECT HERE
-        wait_to_inspect(os.path.join(os.path.dirname(path), "topic.wait"))
-
+def title_generation(id: str, title: str, path: str, exp: list):
+    base_name = os.path.splitext(path)[0]
+    try:
+        from index import segments_db
         # Generate the bounds file.
         bound(base_name + '.topics', base_name + '.asr')
         topics = open(base_name + '.topics').read().split('\n\n')
@@ -103,7 +119,7 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
                     "segment_content": txt} for txt, frm, to in topics]
         segments_db.add_documents(docs)
     except Exception as e:
-        exp[0] = f"Audio Analysis Failed: {e}"
+        exp[0] = f"Title Generation Failed: {e}"
 
 init_asr()
 init_topic()

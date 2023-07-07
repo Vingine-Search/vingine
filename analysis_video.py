@@ -24,10 +24,15 @@ coco_names = read_coco_names() # 80 class for faster rcnn model
 async def analyse(id: str, title: str, path: str, duration: float):
     # TODO: Run an OCR for better results. (Done)
     # TODO: Store description per second file [id].dsc (Done)
+    from index import segments_db
+    describe_every = 5
+    dsc_file = os.path.splitext(path)[0] + '.dsc'
+    seg_file = os.path.splitext(path)[0] + '.seg'
+
     async with SEM:
         exp = [None]
         # We are offloading the sync task to another thread so it doesn't block our server async runtime.
-        off_server_task = threading.Thread(target=sync_analyse, args=(id, title, path, duration, exp), daemon=True)
+        off_server_task = threading.Thread(target=sync_analyse, args=(path, duration, describe_every, dsc_file, seg_file, exp), daemon=True)
         off_server_task.start()
         while off_server_task.is_alive():
             # await to yield the control back to the executor for other tasks to run.
@@ -35,6 +40,30 @@ async def analyse(id: str, title: str, path: str, duration: float):
         off_server_task.join()
         if exp[0] != None:
             raise RuntimeError(exp[0])
+
+    # -------------> INSPECT HERE
+    await wait_to_inspect(os.path.join(os.path.dirname(path), "scene.wait"))
+
+    descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
+    segments = [int(s) for s in open(seg_file).read().split()]
+    open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
+
+    docs = []
+    frm = 0
+    for to in segments:
+        tos = round(to/describe_every)
+        # Make sure we get the last segment as well.
+        if to == segments[-1]:
+            tos += 1
+        docs.append({
+            "id": f"{id}_v_{frm}_{to}",
+            "video_title": title,
+            "segment_title": "",
+            "segment_content": get_content(descriptions, round(frm/describe_every), tos)
+        })
+        # Update the last from.
+        frm = to
+    segments_db.add_documents(docs)
 
 def get_content(descriptions, frm, to):
     print(f"from to (index): {frm} {to}")
@@ -95,10 +124,8 @@ def describe(path, start=0, end=5):
     os.system(f"rm -rf {images_dir}")
     return predicted_actions + predicted_objects + predicted_text
 
-def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
+def sync_analyse(path: str, duration: float, describe_every: int, dsc_file: str, seg_file: str, exp: list):
     try:
-        from index import segments_db
-        describe_every = 5
         descriptions = []
         duration = int(duration)
         for i in range(0, duration, describe_every):
@@ -106,9 +133,6 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
             if i + describe_every > duration:
                 i = duration - describe_every
             descriptions.append(describe(path, i, i + describe_every))
-
-        dsc_file = os.path.splitext(path)[0] + '.dsc'
-        seg_file = os.path.splitext(path)[0] + '.seg'
 
         # every description line represents `describe_every` seconds.
         open(dsc_file, 'w').write('\n'.join([','.join(description) for description in descriptions]))
@@ -125,30 +149,6 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
         else:
             # Assume it's one segment and don't do any segmentation.
             open(seg_file, 'w').write(str(duration))
-
-        # -------------> INSPECT HERE
-        wait_to_inspect(os.path.join(os.path.dirname(path), "scene.wait"))
-
-        descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
-        segments = [int(s) for s in open(seg_file).read().split()]
-        open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
-
-        docs = []
-        frm = 0
-        for to in segments:
-            tos = round(to/describe_every)
-            # Make sure we get the last segment as well.
-            if to == segments[-1]:
-                tos += 1
-            docs.append({
-                "id": f"{id}_v_{frm}_{to}",
-                "video_title": title,
-                "segment_title": "",
-                "segment_content": get_content(descriptions, round(frm/describe_every), tos)
-            })
-            # Update the last from.
-            frm = to
-        segments_db.add_documents(docs)
     except Exception as e:
         exp[0] = f"Video Analysis Failed: {e}"
 

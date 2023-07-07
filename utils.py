@@ -1,6 +1,6 @@
 import os
 import cv2
-import time
+import asyncio
 import subprocess
 from constants import STORAGE_DIR, WAIT_TO_INSPECT
 
@@ -32,8 +32,8 @@ def get_video_duration(path: str) -> float:
         return get_duration_ffprobe(path)
     return round(frm/fps, 2)
 
-def wait_to_inspect(wait_on):
+async def wait_to_inspect(wait_on):
     if WAIT_TO_INSPECT:
         open(wait_on, 'w').write('Remove me when you are done.')
         while os.path.exists(wait_on):
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
