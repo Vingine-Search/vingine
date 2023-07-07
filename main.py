@@ -89,7 +89,9 @@ def info(id: str):
         scene_segments = []
         topic_segments = []
         for segment in segments:
-            _, analysis, frm, to = segment["id"].split("_")
+            segment_id, analysis, frm, to = segment["id"].split("_")
+            if segment_id != id:
+                continue
             if analysis == "v":
                 scene_segments.append({"from": frm, "to": to, "title": segment["segment_title"]})
             else:
