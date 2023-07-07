@@ -89,7 +89,7 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
             os.system(f"cp {base_name + '.txt'} {base_name + '.topics'}")
 
         # -------------> INSPECT HERE
-        wait_to_inspect(os.path.join(os.path.dirname(path), "audio.wait"))
+        wait_to_inspect(os.path.join(os.path.dirname(path), "topic.wait"))
 
         # Generate the bounds file.
         bound(base_name + '.topics', base_name + '.asr')

@@ -127,7 +127,7 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
             open(seg_file, 'w').write(str(duration))
 
         # -------------> INSPECT HERE
-        wait_to_inspect(os.path.join(os.path.dirname(path), "video.wait"))
+        wait_to_inspect(os.path.join(os.path.dirname(path), "scene.wait"))
 
         descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
         segments = [int(s) for s in open(seg_file).read().split()]
