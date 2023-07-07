@@ -32,10 +32,8 @@ def get_video_duration(path: str) -> float:
         return get_duration_ffprobe(path)
     return round(frm/fps, 2)
 
-def wait_to_inspect(msg, wait_on):
+def wait_to_inspect(wait_on):
     if WAIT_TO_INSPECT:
-        dir, ext = os.path.dirname(wait_on), os.path.splitext(wait_on)[1]
-        waiter = os.path.join(dir, "wait" + ext)
-        open(waiter, 'w').write(msg + '\nRemove me when you are done.')
-        while os.path.exists(waiter):
+        open(wait_on, 'w').write('Remove me when you are done.')
+        while os.path.exists(wait_on):
             time.sleep(0.1)

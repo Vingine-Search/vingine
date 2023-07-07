@@ -82,13 +82,15 @@ def sync_analyse(id: str, title: str, path: str, exp: list):
         try:
             # Generate the topics file.
             predict(base_name + '.txt')
-        except ValueError:
+        except Exception as e:
             # The text might be too short to make up a single batch for topic segmentation.
             # Assume it's one topic and carry on.
+            open(base_name + '.topics.failed', 'w').write(f"Segmentation Failed: {e}")
             os.system(f"cp {base_name + '.txt'} {base_name + '.topics'}")
 
         # -------------> INSPECT HERE
-        wait_to_inspect(f"Generated topics file: {base_name + '.topics'}", base_name + '.topics')
+        wait_to_inspect(os.path.join(os.path.dirname(path), "audio.wait"))
+
         # Generate the bounds file.
         bound(base_name + '.topics', base_name + '.asr')
         topics = open(base_name + '.topics').read().split('\n\n')

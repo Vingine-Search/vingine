@@ -109,24 +109,29 @@ def sync_analyse(id: str, title: str, path: str, duration: float, exp: list):
 
         dsc_file = os.path.splitext(path)[0] + '.dsc'
         seg_file = os.path.splitext(path)[0] + '.seg'
+
         # every description line represents `describe_every` seconds.
-        open(dsc_file, 'w').write('\n'.join([', '.join(description) for description in descriptions]))
+        open(dsc_file, 'w').write('\n'.join([','.join(description) for description in descriptions]))
+
+        if duration > 3 * 60:
+            try:
+                # Segment the video if it's longer than 3 minutes.
+                segments = [str(int(s)) for s in get_scene_seg(path)] + [str(duration)]
+                open(seg_file, 'w').write(' '.join(segments))
+            except Exception as e:
+                open(seg_file + '.failed', 'w').write(f"Segmentation Failed: {e}")
+                # Fall back to just one segment.
+                open(seg_file, 'w').write(str(duration))
+        else:
+            # Assume it's one segment and don't do any segmentation.
+            open(seg_file, 'w').write(str(duration))
 
         # -------------> INSPECT HERE
-        wait_to_inspect(f"Generated the video description: {dsc_file}", dsc_file)
-        descriptions = [line.split(', ') for line in open(dsc_file).read().split('\n')]
+        wait_to_inspect(os.path.join(os.path.dirname(path), "video.wait"))
+
+        descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
+        segments = [int(s) for s in open(seg_file).read().split()]
         open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
-
-        # Assume it's one segment and don't do any segmentation.
-        segments = [duration]
-        if duration > 3 * 60:
-            # Segment the video if it's longer than 3 minutes.
-            segments = [str(int(s)) for s in get_scene_seg(path)] + [str(duration)]
-            open(seg_file, 'w').write(' '.join(segments))
-
-            # -------------> INSPECT HERE
-            wait_to_inspect(f"Generated the video segment indices: {seg_file}", seg_file)
-            segments = [int(s) for s in open(seg_file).read().split()]
 
         docs = []
         frm = 0
