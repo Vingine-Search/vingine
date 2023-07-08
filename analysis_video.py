@@ -44,6 +44,8 @@ async def analyse(id: str, title: str, path: str, duration: float):
     descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
     segments = [int(s) for s in open(seg_file).read().split()]
     open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))
+    if segments[-1] != int(duration):
+        segments.append(int(duration))
 
     docs = []
     frm = 0
