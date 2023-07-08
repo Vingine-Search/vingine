@@ -9,5 +9,3 @@ A_SEM = asyncio.Semaphore(1)
 
 V_SEM = asyncio.Semaphore(1)
 """A global semaphore to limit task concurrency."""
-
-WAIT_TO_INSPECT = True

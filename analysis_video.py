@@ -41,9 +41,6 @@ async def analyse(id: str, title: str, path: str, duration: float):
         if exp[0] != None:
             raise RuntimeError(exp[0])
 
-    # -------------> INSPECT HERE
-    await wait_to_inspect(os.path.join(os.path.dirname(path), "scene.wait"))
-
     descriptions = [line.split(',') for line in open(dsc_file).read().split('\n')]
     segments = [int(s) for s in open(seg_file).read().split()]
     open(dsc_file, 'w').write('\n'.join([' '.join(description) for description in descriptions]))

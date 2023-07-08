@@ -31,9 +31,3 @@ def get_video_duration(path: str) -> float:
         # Fall back to ffprobe (for audio-only files)
         return get_duration_ffprobe(path)
     return round(frm/fps, 2)
-
-async def wait_to_inspect(wait_on):
-    if WAIT_TO_INSPECT:
-        open(wait_on, 'w').write('Remove me when you are done.')
-        while os.path.exists(wait_on):
-            await asyncio.sleep(0.1)

@@ -33,9 +33,6 @@ async def analyse(id: str, title: str, path: str):
         if exp[0] != None:
             raise RuntimeError(exp[0])
 
-    # -------------> INSPECT HERE
-    await wait_to_inspect(os.path.join(os.path.dirname(path), "topic.wait"))
-
     async with SEM:
         exp = [None]
         # We are offloading the sync task to another thread so it doesn't block our server async runtime.
