@@ -44,6 +44,7 @@ async def analyse(video: UploadFile, id: str, name: str, analysis_type: str):
     async with aiofiles.open(path, 'wb') as file:
         while contents := await video.read(256 * 1024):
             await file.write(contents)
+    open(path[:-len(extension)] + ".title", 'w').write(name)
     analysis_type = analysis_type.replace("both", "audio & video")
     duration = utils.get_video_duration(path)
     info_db.add_documents([{
