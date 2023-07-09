@@ -109,6 +109,11 @@ def info(id: str):
     except IndexDBError:
         raise HTTPException(404, f"Unknown video '{id}'")
 
+@api.get('/vtt')
+def vtt(id: str):
+    _, _, vtt = utils.get_fs_data(id)
+    return vtt
+
 @api.get('/search')
 def search(query: str):
     """Look up the query in the index."""
