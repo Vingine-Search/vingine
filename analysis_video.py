@@ -2,7 +2,6 @@ import os
 import asyncio
 import threading
 from constants import V_SEM as SEM
-from utils import wait_to_inspect
 
 from video_description.inference.s3d_infer import *
 from video_description.inference.obj_infer import *

@@ -2,7 +2,6 @@ import os, re
 import asyncio
 import threading
 from constants import A_SEM as SEM
-from utils import wait_to_inspect
 
 import tensorflow as tf
 gpus = tf.config.experimental.list_physical_devices('GPU')

@@ -1,8 +1,7 @@
 import os
 import cv2
-import asyncio
 import subprocess
-from constants import STORAGE_DIR, WAIT_TO_INSPECT
+from constants import STORAGE_DIR
 
 
 def get_fs_data(id: str):
